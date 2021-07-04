@@ -1,0 +1,91 @@
+---
+- name: Check if template exists
+  ansible.builtin.shell:
+    cmd: "qm list | awk '{print $1}' | grep ^{{ proxmox_provision_template_id }}$"
+  when: proxmox_provision_template_create | bool and proxmox_provision_template_recreate | bool
+  failed_when: template_check_result.rc not in [ 0, 1 ]
+  register: template_check_result
+
+- name: Remove template
+  ansible.builtin.shell:
+    cmd: "qm destroy {{ proxmox_provision_template_id }} --purge true"
+  when: template_check_result.stdout is defined and template_check_result.stdout|int == proxmox_provision_template_id
+
+- name: "Download img {{ proxmox_provision_template_img_url }}"
+  ansible.builtin.get_url:
+    url: "{{ proxmox_provision_template_img_url }}"
+    dest: "{{ proxmox_templates_path }}/iso"
+    force: no
+
+- name: Create VM
+  ansible.builtin.shell:
+    cmd: "qm create {{ proxmox_provision_template_id }} \
+        --net0 virtio,bridge={{ proxmox_provision_template_bridge }} \
+        --description '{{ proxmox_provision_template_description }}' \
+        --name {{ proxmox_provision_template_name }}"
+  register: task_createvm
+- pause:
+    seconds: 5
+  when: task_createvm.changed
+
+- name: Prepare disc
+  ansible.builtin.shell:
+    chdir: "{{ proxmox_provision_template_iso_path }}"
+    cmd: "qm importdisk {{ proxmox_provision_template_id }} {{ proxmox_provision_template_image }} {{ proxmox_provision_template_storage }}"
+  register: task_disk
+- pause:
+    seconds: 5
+  when: task_disk.changed
+
+- name: Configure scsi0
+  ansible.builtin.shell:
+    cmd: "qm set {{ proxmox_provision_template_id }} \
+        --scsihw virtio-scsi-pci \
+        --scsi0 {{ proxmox_provision_template_storage }}:vm-{{ proxmox_provision_template_id }}-disk-0"
+  register: task_scsi0
+- pause:
+    seconds: 5
+  when: task_scsi0.changed
+
+- name: Configure ide2
+  ansible.builtin.shell:
+    cmd: "qm set {{ proxmox_provision_template_id }} \
+        --ide2 {{ proxmox_provision_template_storage }}:cloudinit"
+  register: task_ide2
+- pause:
+    seconds: 5
+  when: task_ide2.changed
+
+- name: Set bootdisk
+  ansible.builtin.shell:
+    cmd: "qm set {{ proxmox_provision_template_id }} \
+        --boot c \
+        --bootdisk scsi0"
+  register: task_bootdisk
+- pause:
+    seconds: 5
+  when: task_bootdisk.changed
+
+- name: serial0
+  ansible.builtin.shell:
+    cmd: "qm set {{ proxmox_provision_template_id }} \
+        --serial0 socket \
+        --vga serial0"
+  register: task_serial0
+- pause:
+    seconds: 5
+  when: task_serial0.changed
+
+- name: Prepare cloud-init user config
+  ansible.builtin.template:
+    src: user_config.yaml.j2
+    dest: "{{ proxmox_provision_snipets_path }}/user_config.yaml"
+    mode: u=rw,g=r,o=r
+
+- name: cicustom
+  ansible.builtin.shell:
+    cmd: "qm set {{ proxmox_provision_template_id }} --cicustom 'user=local:snippets/user_config.yaml'"
+
+- name: create template
+  ansible.builtin.shell:
+    cmd: "qm template {{ proxmox_provision_template_id }}"

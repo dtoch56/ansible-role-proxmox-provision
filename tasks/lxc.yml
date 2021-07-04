@@ -1,0 +1,36 @@
+- name: Create LXC containers
+  proxmox:
+    api_host: "{{ proxmox_provision_api_host }}"
+    api_user: "{{ proxmox_provision_api_user }}"
+    api_password: "{{ proxmox_provision_api_password }}"
+    node: "{{ node }}"
+    hostname: "{{ item.value.hostname }}"
+    state: present
+    pubkey: "{{ item.value.key | default(omit) }}"
+    validate_certs: no
+    ostemplate: "{{ item.value.template }}"
+    hookscript: "{{ hookscript | default('local:snippets/ansible_hook.sh') }}"
+    netif: "{'net0':'name=eth0,gw={{ item.value.network.gateway }},ip={{ item.value.network.ip }}/24,bridge=vmbr0'}"
+    cpus: "{{ item.value.cpus }}"
+    cores: "{{ item.value.cores }}"
+    cpuunits: "{{ item.value.cpuunits | default(omit) }}"
+    storage: "{{ item.value.storage | default(local) }}"
+    disk: "{{ item.value.disk }}"
+    memory: "{{ item.value.memory }}"
+    onboot: "{{ item.value.onboot }}"
+    swap: "{{ item.value.swap | default(omit) }}"
+    vmid: "{{ item.value.vmid }}"
+    unprivileged: "{{ item.value.unprivileged | default(omit) }}"
+    proxmox_default_behavior: compatibility
+  loop: "{{ lookup('dict', proxmox_provision_lxcs, wantlist=True) }}"
+
+- name: Start LXC containers
+  proxmox:
+    api_host: "{{ proxmox_provision_api_host }}"
+    api_user: "{{ proxmox_provision_api_user }}"
+    api_password: "{{ proxmox_provision_api_password }}"
+    node: "{{ node }}"
+    vmid: "{{ item.value.vmid }}"
+    state: started
+    proxmox_default_behavior: compatibility
+  loop: "{{ lookup('dict', proxmox_provision_lxcs, wantlist=True) }}"

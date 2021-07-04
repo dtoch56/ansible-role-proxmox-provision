@@ -1,0 +1,26 @@
+galaxy_info:
+  author: dtoch56
+  role_name: proxmox_provision
+  description: Provision Proxmox KVM virtual machines and LXC containers
+  license: MIT
+  min_ansible_version: 2.1
+  platforms:
+    - name: EL
+      versions:
+        - all
+    - name: Fedora
+      versions:
+        - all
+    - name: Debian
+      versions:
+        - all
+    - name: Ubuntu
+      versions:
+        - all
+  galaxy_tags:
+    - proxmox
+    - provision
+    - kvm
+    - lxc
+
+dependencies: []

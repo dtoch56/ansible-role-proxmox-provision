@@ -1,0 +1,45 @@
+#cloud-config
+users:
+  - name: {{ proxmox_provision_user }}
+    gecos: {{ proxmox_provision_user_gecos }}
+{% if proxmox_provision_user_hashed_passwd != "" %}
+    passwd: {{ proxmox_provision_user_hashed_passwd }}
+{% else %}
+    passwd: {{ proxmox_provision_user_passwd  | password_hash('sha512') }}
+{% endif %}
+{% if proxmox_provision_user_nopass_sudo %}
+    sudo: ALL=(ALL) NOPASSWD:ALL
+{% else %}
+    sudo: ALL=(ALL) ALL
+{% endif %}
+    shell: /bin/bash
+    homedir: /home/{{ proxmox_provision_user }}
+    lock_passwd: {{ proxmox_provision_user_lock_password }}
+{% if proxmox_provision_user_ssh_keys and proxmox_provision_user_ssh_keys|length > 0 %}
+    ssh_authorized_keys:
+{% for ssh_key in proxmox_provision_user_ssh_keys %}
+      - {{ ssh_key }}
+{% endfor %}
+{% endif %}
+{% if proxmox_provision_users.keys()|length > 0 %}
+{% for item in proxmox_provision_users.values() %}
+  - name: {{ item.name }}
+    gecos: {{ item.gecos }}
+    shell: /bin/bash
+    homedir: /home/{{ item.name }}
+{% if item.password is defined %}
+    passwd: {{ item.password | password_hash('sha512') }}
+{% endif %}
+    lock_passwd: {{ item.lock_passwd }}
+    sudo: {{ item.sudo | default(False) }}
+{% if item.ssh_keys and item.ssh_keys|length > 0 %}
+    ssh_authorized_keys:
+{% for ssh_key in item.ssh_keys %}
+      - {{ ssh_key }}
+{% endfor %}
+{% endif %}
+{% endfor %}
+{% endif %}
+
+package_update: true
+package_upgrade: true

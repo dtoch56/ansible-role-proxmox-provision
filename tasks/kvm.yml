@@ -1,0 +1,77 @@
+- name: Clone VMs
+  community.general.proxmox_kvm:
+    api_host: "{{ proxmox_provision_api_host }}"
+    api_user: "{{ proxmox_provision_api_user }}"
+    api_password: "{{ proxmox_provision_api_password }}"
+    node: "{{ proxmox_provision_node }}"
+    name: "{{ item.value.name }}"
+    newid: "{{ item.value.vmid }}"
+    clone: "{{ item.value.clone_vm }}"
+    full: yes
+    storage: "{{ item.value.storage | default(proxmox_provision_kvm_defaults.storage) }}"
+  loop: "{{ lookup('dict', proxmox_provision_kvms, wantlist=True) }}"
+
+- name: Cloud-init network configuration, description, user and SSH key
+  command: >
+    qm set {{ item.value.vmid }} \
+      --ipconfig0 ip="{{ item.value.network.ip }}"/{{ item.value.network.cidr | default(local_subnetwork.cidr) }},gw="{{ item.value.network.gateway | default(local_subnetwork.gateway) }}" \
+      --nameserver "{{ item.value.network.nameserver | default(local_subnetwork.nameserver) }}" \
+      --searchdomain "{{ item.value.network.searchdomain | default(local_subnetwork.searchdomain) }}" \
+      --description "{{ item.value.description }}" \
+  loop: "{{ lookup('dict', proxmox_provision_kvms, wantlist=True) }}"
+
+- name: Update VMs
+  community.general.proxmox_kvm:
+    api_host: "{{ proxmox_provision_api_host }}"
+    api_user: "{{ proxmox_provision_api_user }}"
+    api_password: "{{ proxmox_provision_api_password }}"
+    cores: "{{ item.value.cores }}"
+    sockets: "{{ item.value.sockets }}"
+    memory: "{{ item.value.memory }}"
+    update: "{{ item.value.update | default(True) | bool }}"
+    onboot: "{{ item.value.onboot | default(True) | bool }}"
+    vmid: "{{ item.value.vmid }}"
+    node: "{{ proxmox_provision_node }}"
+    name: "{{ item.value.name }}"
+  loop: "{{ lookup('dict', proxmox_provision_kvms, wantlist=True) }}"
+
+- name: Proxmox API authentication
+  ansible.builtin.uri:
+    url: "https://{{ proxmox_provision_api_host }}:8006/api2/json/access/ticket"
+    validate_certs: "{{ 'no' if proxmox_provision_api_host == 'localhost' else 'yes' }}"
+    method: POST
+    body_format: form-urlencoded
+    body:
+      username: "{{ proxmox_provision_api_user }}"
+      password: "{{ proxmox_provision_api_password }}"
+  register: auth
+
+- name: Resize disk
+  ansible.builtin.uri:
+    url: "https://{{ proxmox_provision_api_host }}:8006/api2/json/nodes/{{ proxmox_provision_node }}/qemu/{{ item.value.vmid }}/resize"
+    validate_certs: "{{ 'no' if proxmox_provision_api_host == 'localhost' else 'yes' }}"
+    method: PUT
+    headers:
+      Cookie: "PVEAuthCookie={{ auth.json.data.ticket }}"
+      CSRFPreventionToken: "{{ auth.json.data.CSRFPreventionToken }}"
+    body_format: form-urlencoded
+    body:
+      disk: scsi0
+      size: "{{ item.value.disksize }}"
+  loop: "{{ lookup('dict', proxmox_provision_kvms, wantlist=True) }}"
+  when: item.value.disksize is defined
+  register: task_resize_disk
+
+- pause:
+    seconds: 20
+  when: task_resize_disk.changed
+
+- name: Start VMs
+  community.general.proxmox_kvm:
+    api_host: "{{ proxmox_provision_api_host }}"
+    api_user: "{{ proxmox_provision_api_user }}"
+    api_password: "{{ proxmox_provision_api_password }}"
+    vmid: "{{ item.value.vmid }}"
+    node: "{{ proxmox_provision_node }}"
+    state: started
+  loop: "{{ lookup('dict', proxmox_provision_kvms, wantlist=True) }}"

@@ -1,0 +1,9 @@
+---
+- include: create_kvm_template.yml
+  when: proxmox_provision_template_create|default(false)
+
+- include: kvm.yml
+  when: proxmox_provision_kvms.keys()|length > 0
+
+- include: lxc.yml
+  when: proxmox_provision_lxcs.keys()|length > 0
