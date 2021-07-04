@@ -41,7 +41,7 @@
   ansible.builtin.shell:
     cmd: "qm set {{ proxmox_provision_template_id }} \
         --scsihw virtio-scsi-pci \
-        --scsi0 {{ proxmox_provision_template_storage }}:vm-{{ proxmox_provision_template_id }}-disk-0"
+        --scsi0 {{ proxmox_provision_template_storage }}:{{ proxmox_provision_template_id }}/vm-{{ proxmox_provision_template_id }}-disk-0.raw"
   register: task_scsi0
 - pause:
     seconds: 5
