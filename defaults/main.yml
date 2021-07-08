@@ -1,7 +1,9 @@
 ---
 # Template
 proxmox_provision_template_img_url: https://cloud-images.ubuntu.com/focal/current/focal-server-cloudimg-amd64-disk-kvm.img
+proxmox_provision_template_img_redownload: false
 proxmox_provision_template_image: focal-server-cloudimg-amd64-disk-kvm.img
+proxmox_provision_template_ostype: l26
 proxmox_provision_template_name: Ubuntu2004Kvm
 proxmox_provision_template_description: Ubuntu 20.04 KVM Disk
 proxmox_provision_template_storage: local
@@ -15,6 +17,7 @@ proxmox_provision_snipets_path: /var/lib/vz/snippets
 
 # Default user
 proxmox_provision_user: ansible
+proxmox_provision_user_uid: 1099
 proxmox_provision_user_hashed_passwd: ""
 proxmox_provision_user_passwd: 7B6FMJHjVc9B4aFS
 proxmox_provision_user_ssh_keys: []

@@ -5,24 +5,28 @@
   when: proxmox_provision_template_create | bool and proxmox_provision_template_recreate | bool
   failed_when: template_check_result.rc not in [ 0, 1 ]
   register: template_check_result
+  tags: template_cloud_config
 
 - name: Remove template
   ansible.builtin.shell:
     cmd: "qm destroy {{ proxmox_provision_template_id }} --purge true"
   when: template_check_result.stdout is defined and template_check_result.stdout|int == proxmox_provision_template_id
+  tags: template_cloud_config
 
 - name: "Download img {{ proxmox_provision_template_img_url }}"
   ansible.builtin.get_url:
     url: "{{ proxmox_provision_template_img_url }}"
-    dest: "{{ proxmox_templates_path }}/iso"
-    force: no
+    dest: "{{ proxmox_templates_path }}/iso/{{ proxmox_provision_template_img_url | basename }}"
+    force: "{{ proxmox_provision_template_img_redownload }}"
+  tags: download_image
 
 - name: Create VM
   ansible.builtin.shell:
     cmd: "qm create {{ proxmox_provision_template_id }} \
         --net0 virtio,bridge={{ proxmox_provision_template_bridge }} \
         --description '{{ proxmox_provision_template_description }}' \
-        --name {{ proxmox_provision_template_name }}"
+        --name {{ proxmox_provision_template_name }}
+        --ostype {{ proxmox_provision_template_ostype }}"
   register: task_createvm
 - pause:
     seconds: 5
@@ -81,6 +85,7 @@
     src: user_config.yaml.j2
     dest: "{{ proxmox_provision_snipets_path }}/user_config.yaml"
     mode: u=rw,g=r,o=r
+  tags: template_cloud_config
 
 - name: cicustom
   ansible.builtin.shell:

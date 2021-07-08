@@ -1,11 +1,12 @@
 #cloud-config
 users:
   - name: {{ proxmox_provision_user }}
+    uid: "{{ proxmox_provision_user_uid }}"
     gecos: {{ proxmox_provision_user_gecos }}
 {% if proxmox_provision_user_hashed_passwd != "" %}
     passwd: {{ proxmox_provision_user_hashed_passwd }}
 {% else %}
-    passwd: {{ proxmox_provision_user_passwd  | password_hash('sha512') }}
+    passwd: {{ proxmox_provision_user_passwd | password_hash('sha512') }}
 {% endif %}
 {% if proxmox_provision_user_nopass_sudo %}
     sudo: ALL=(ALL) NOPASSWD:ALL
@@ -24,11 +25,14 @@ users:
 {% if proxmox_provision_users.keys()|length > 0 %}
 {% for item in proxmox_provision_users.values() %}
   - name: {{ item.name }}
+    uid: "{{ item.uid }}"
     gecos: {{ item.gecos }}
     shell: /bin/bash
     homedir: /home/{{ item.name }}
-{% if item.password is defined %}
-    passwd: {{ item.password | password_hash('sha512') }}
+{% if item.hashed_passwd is defined and item.hashed_passwd != "" %}
+    passwd: {{ item.hashed_passwd }}
+{% else %}
+    passwd: {{ item.passwd | password_hash('sha512') }}
 {% endif %}
     lock_passwd: {{ item.lock_passwd }}
     sudo: {{ item.sudo | default(False) }}
@@ -41,5 +45,6 @@ users:
 {% endfor %}
 {% endif %}
 
+preserve_hostname: true
 package_update: true
 package_upgrade: true

@@ -25,14 +25,15 @@
     api_host: "{{ proxmox_provision_api_host }}"
     api_user: "{{ proxmox_provision_api_user }}"
     api_password: "{{ proxmox_provision_api_password }}"
-    cores: "{{ item.value.cores }}"
-    sockets: "{{ item.value.sockets }}"
-    memory: "{{ item.value.memory }}"
+    cores: "{{ item.value.cores | int }}"
+    sockets: "{{ item.value.sockets | int }}"
+    memory: "{{ item.value.memory | int }}"
     update: "{{ item.value.update | default(True) | bool }}"
     onboot: "{{ item.value.onboot | default(True) | bool }}"
     vmid: "{{ item.value.vmid }}"
     node: "{{ proxmox_provision_node }}"
     name: "{{ item.value.name }}"
+    update: yes
   loop: "{{ lookup('dict', proxmox_provision_kvms, wantlist=True) }}"
 
 - name: Proxmox API authentication
@@ -71,6 +72,7 @@
     api_host: "{{ proxmox_provision_api_host }}"
     api_user: "{{ proxmox_provision_api_user }}"
     api_password: "{{ proxmox_provision_api_password }}"
+    proxmox_default_behavior: "no_defaults"
     vmid: "{{ item.value.vmid }}"
     node: "{{ proxmox_provision_node }}"
     state: started
