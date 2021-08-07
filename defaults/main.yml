@@ -12,7 +12,7 @@ proxmox_provision_template_iso_path: /var/lib/vz/template/iso
 proxmox_provision_template_id: 999
 
 proxmox_provision_template_bridge: vmbr1
-proxmox_provision_snipets_path: /var/lib/vz/snippets
+proxmox_provision_snippets_path: /var/lib/vz/snippets
 
 
 # Default user
@@ -50,4 +50,18 @@ local_subnetwork:
   searchdomain: test.local
 
 proxmox_provision_kvms: {}
+# test-vm-1:
+#   clone_vm: Ubuntu2004Kvm
+#   name: test-vm-1
+#   description: |
+#     ANSIBLE MANAGED:
+#   network:
+#   ip: 10.0.0.100
+#   vmid: 100
+#   cores: 2
+#   sockets: 1
+#   memory: 4096
+#   disksize: 20G
+
 proxmox_provision_lxcs: {}
+#

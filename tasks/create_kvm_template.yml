@@ -83,7 +83,7 @@
 - name: Prepare cloud-init user config
   ansible.builtin.template:
     src: user_config.yaml.j2
-    dest: "{{ proxmox_provision_snipets_path }}/user_config.yaml"
+    dest: "{{ proxmox_provision_snippets_path }}/user_config.yaml"
     mode: u=rw,g=r,o=r
   tags: template_cloud_config
 

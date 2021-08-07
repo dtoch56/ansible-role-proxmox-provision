@@ -13,8 +13,8 @@ users:
 {% else %}
     sudo: ALL=(ALL) ALL
 {% endif %}
-    shell: /bin/bash
-    homedir: /home/{{ proxmox_provision_user }}
+    shell: {{ proxmox_provision_user_shell | default('/bin/bash') }}
+    homedir: {{ proxmox_provision_user_home | default('/home/' + proxmox_provision_user ) }}
     lock_passwd: {{ proxmox_provision_user_lock_password }}
 {% if proxmox_provision_user_ssh_keys and proxmox_provision_user_ssh_keys|length > 0 %}
     ssh_authorized_keys:
@@ -27,7 +27,7 @@ users:
   - name: {{ item.name }}
     uid: "{{ item.uid }}"
     gecos: {{ item.gecos }}
-    shell: /bin/bash
+    shell: {{ item.shell | default('/bin/bash') }}
     homedir: /home/{{ item.name }}
 {% if item.hashed_passwd is defined and item.hashed_passwd != "" %}
     passwd: {{ item.hashed_passwd }}
